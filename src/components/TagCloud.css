@@ -1,0 +1,292 @@
+/* TagCloud.css */
+:root {
+    --color-primary: #1A365D;      /* Deep Navy Blue */
+    --color-accent: #FF7E67;       /* Soft Coral */
+    --color-background: #E2EADF;   /* Light Sage */
+    --color-container: #F5F0E8;    /* Warm Stone */
+    --color-text-primary: #2D3748; /* Deep Charcoal */
+    --color-text-secondary: #718096; /* Slate Gray */
+    --color-border: #E2E8F0;       /* Light Gray */
+  }
+  
+  .tag-cloud-container {
+    background-color: var(--color-background);
+    min-height: 100vh;
+  }
+  
+  .tag-cloud-title {
+    color: var(--color-text-primary);
+    font-weight: bold;
+  }
+  
+  .back-button {
+    color: var(--color-primary);
+    transition: color 0.2s;
+  }
+  
+  .back-button:hover {
+    color: var(--color-accent);
+  }
+  
+  .categories-container {
+    background-color: var(--color-container);
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  .category-button {
+    background-color: var(--color-primary);
+    color: white;
+    padding: 0.5rem 1rem;
+    margin-right: 0.5rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+    min-width: 8rem;
+    text-align: center;
+  }
+  
+  .category-button:hover {
+    background-color: var(--color-primary);
+    opacity: 0.9;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+  }
+  
+  .category-button.active {
+    background-color: var(--color-accent);
+    color: var(--color-text-primary);
+    font-weight: bold;
+  }
+  
+  .scroll-button {
+    background-color: var(--color-primary);
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+    color: white;
+  }
+  
+  .scroll-button:hover {
+    background-color: var(--color-accent);
+  }
+  
+  .scroll-arrow {
+    font-size: 1.5rem;
+  }
+  
+  .tag-cloud-bubble {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+  }
+  
+  .tag-item {
+    padding: 0.2em 0.4em;
+    margin: 0.1em;
+    line-height: 1.2;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+  }
+  
+  .tag-item:hover {
+    transform: scale(1.1);
+    color: var(--color-accent); /* Coral on hover for all tags */
+  }
+  
+  /* Only the largest tags (highest count) are coral */
+  .tag-item.large {
+    color: var(--color-accent);
+    font-weight: 600; /* Slightly bolder */
+  }
+  
+  .article-card {
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: white;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  .article-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+  
+  .article-image-container {
+    height: 12rem;
+    background-color: var(--color-container);
+    border-bottom: 1px solid var(--color-border);
+  }
+  
+  .article-title-container {
+    height: 4rem;
+    background-color: white;
+    border-bottom: 1px solid var(--color-border);
+    font-weight: bold;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-primary);
+  }
+  
+  .article-excerpt-container {
+    height: 8rem;
+    background-color: white;
+    border-bottom: 1px solid var(--color-border);
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+  }
+  
+  .article-button-container {
+    padding: 0.75rem;
+    background-color: var(--color-container);
+    display: flex;
+    justify-content: center;
+  }
+  
+  .read-more-button {
+    background-color: var(--color-primary);
+    color: white;
+    padding: 0.5rem 2rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+  }
+  
+  .read-more-button:hover {
+    background-color: var(--color-accent);
+    transform: translateY(-1px);
+  }
+  
+  .empty-state {
+    color: var(--color-text-secondary);
+    font-style: italic;
+  }
+  
+  
+  .tag-cloud-container {
+    width: 100%;
+    position: relative;
+  }
+  
+  .tag-cloud-bubble {
+    background: #f8f9fa;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    margin: 0 auto;
+    overflow: auto;
+    position: relative;
+    border: 1px solid #e1e4e8;
+  }
+  
+  .tag-item {
+    display: inline-block;
+    margin: 0.4em;
+    padding: 0.3em 0.6em;
+    background: white;
+    border-radius: 30px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid #e1e4e8;
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .tag-item:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  .tag-item.large {
+    font-weight: bold;
+    background: #e6f7ff;
+    border-color: #91d5ff;
+  }
+  
+  .tag-cloud-bubble {
+    padding: 1rem !important;
+    gap: 4px !important;
+  }
+  
+  .tag-item {
+    padding: 0.2em 0.4em !important;
+    margin: 0.1em !important;
+    border-radius: 12px !important;
+    line-height: 1.1 !important;
+    max-width: 120px !important;
+  }
+
+  .search-container {
+    transition: all 0.3s ease;
+  }
+  
+  .search-container input {
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  
+  .search-container input:focus {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+  
+  .search-highlight {
+    background-color: rgba(255, 255, 0, 0.3);
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+  
+  .search-suggestions {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #eaeaea;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+  
+  .suggestion-item {
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .suggestion-item:hover {
+    background-color: #f0f9ff;
+  }
+  
+  .search-category-indicator {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background-color: #e6f7ff;
+    color: #0066cc;
+    margin-left: 6px;
+  }
+  
+  .search-tag-indicator {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background-color: #f0f9ff;
+    color: #0066cc;
+    margin-left: 6px;
+  }
+  
+  /* Improve article card display in search results */
+  .search-results-article {
+    transition: transform 0.2s;
+  }
+  
+  .search-results-article:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+  }
