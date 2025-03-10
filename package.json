@@ -1,5 +1,6 @@
 {
   "name": "tagcloud",
+  "homepage": "https://shaula-hub.github.io/tagcloud",  
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -13,10 +14,10 @@
     "build:wowmind": "vite build --mode wowmind",
     "build:aitmir": "vite build --mode aitmir",
     "build:blogem": "vite build --mode blogem",
-    
-    "combine": "mkdir -p dist/combined && cp -r dist/wowmind/* dist/combined/ && mv dist/combined/index.html dist/combined/wowmind.html && cp -r dist/aitmir/* dist/combined/ && mv dist/combined/index.html dist/combined/aitmir.html && cp -r dist/blogem/* dist/combined/ && mv dist/combined/index.html dist/combined/blogem.html",
+    "combine": "node scripts/combine.js",
     "build:all": "npm run build && npm run combine",
-    
+    "predeploy": "npm run build:all",
+    "deploy": "npx gh-pages -d dist/combined",
     "lint": "eslint .",
     "preview": "vite preview"
   },

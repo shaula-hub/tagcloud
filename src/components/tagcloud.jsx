@@ -12,8 +12,33 @@ const CHANNELS = {
 };
 
 const TagCloud = ({ channelId = 'wowmind' }) => {
+  const useScreenSize = () => {
+    const [screenSize, setScreenSize] = useState({
+      width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+      isMobile: typeof window !== 'undefined' ? window.innerWidth <= 768 : false,
+      isSmallMobile: typeof window !== 'undefined' ? window.innerWidth <= 480 : false
+    });
+    
+    useEffect(() => {
+      const handleResize = () => {
+        setScreenSize({
+          width: window.innerWidth,
+          isMobile: window.innerWidth <= 768,
+          isSmallMobile: window.innerWidth <= 480
+        });
+      };
+      
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }, []);
+    
+    return screenSize;
+  };
+
   // Get channel configuration or fall back to default
   const channelConfig = CHANNELS[channelId] || CHANNELS.wowmind;
+  
+  const { width, isMobile, isSmallMobile } = useScreenSize();
   
   const [articles, setArticles] = useState([]);
   const [filteredArticles, setFilteredArticles] = useState([]);
@@ -198,14 +223,22 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
     return count >= threshold;
   }, [categoryTags, tagSizeData]);
   
-  // Get tag size using the memoized data
+  // Get tag size for tags in the cloud:
   const getTagSize = useCallback((count) => {
     if (categoryTags.length === 0) return 1;
     
-    // More constrained sizing - between 0.9em and 1.8em
     const percentage = (count - tagSizeData.min) / tagSizeData.range;
+    
+    // Tiered font sizing based on screen width
+    if (isSmallMobile) {
+      return 0.6 + percentage * 0.4; // Smallest range for small phones
+    } else if (isMobile) {
+      return 0.7 + percentage * 0.5; // Medium range for tablets/larger phones
+    }
+    
+    // Original desktop size
     return 0.9 + percentage * 0.9; 
-  }, [categoryTags, tagSizeData]);
+  }, [categoryTags, tagSizeData, isMobile, isSmallMobile]);
 
   // Also, create a function to distribute tag sizes more evenly
   const getDistributedTagSize = useCallback((count) => {
@@ -362,6 +395,28 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
     );
   };
 
+  const getButtonTextSize = useCallback(() => {
+    if (isSmallMobile) {
+      return '0.8rem'; // Smallest text for small phones
+    } else if (isMobile) {
+      return '0.85rem'; // Medium text for tablets/larger phones
+    }
+    
+    // Original desktop size
+    return '1rem';
+  }, [isMobile, isSmallMobile]);
+  
+  // 5. Add a function to calculate button padding based on screen size
+  const getButtonPadding = useCallback(() => {
+    if (isSmallMobile) {
+      return '0.35rem 0.6rem'; // Smallest padding for small phones
+    } else if (isMobile) {
+      return '0.45rem 0.8rem'; // Medium padding for tablets/larger phones
+    }
+    
+    // Original desktop size
+    return '0.6rem 1rem';
+  }, [isMobile, isSmallMobile]);
 
   // Popular searches
   useEffect(() => {
@@ -383,22 +438,24 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
     }
   }, []);
 
-
+  // Tag cloud height calculation
   useEffect(() => {
     const calculateTagCloudHeight = () => {
-      // Basic calculation - adjust based on tag count
-      const baseHeight = 384; // 24rem
-      const heightPerTag = 40; // estimated pixels per tag
+      // Responsive height based on screen size
+      const baseHeight = isSmallMobile ? 280 : isMobile ? 320 : 384;
+      const heightPerTag = isSmallMobile ? 25 : isMobile ? 30 : 40;
+      const maxHeight = isSmallMobile ? 500 : isMobile ? 600 : 800;
+      
       const neededHeight = Math.min(
         baseHeight + (categoryTags.length > 20 ? (categoryTags.length - 20) * heightPerTag/4 : 0),
-        800 // maximum height - adjust as needed
+        maxHeight
       );
       
       setTagCloudHeight(`${neededHeight}px`);
     };
     
     calculateTagCloudHeight();
-  }, [categoryTags]);
+  }, [categoryTags, isMobile, isSmallMobile]);
 
   // Calculate how many category buttons can fit - with throttling to improve performance
   useEffect(() => {
@@ -516,43 +573,66 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
           <button 
             onClick={goBackToTagCloud}
             aria-label="Back to tag cloud"
-            className="back-button flex items-center mb-4 text-lg"
+            className="back-button flex items-center mb-4"
+            style={{
+              fontSize: isSmallMobile ? '0.9rem' : isMobile ? '1rem' : '1.1rem'
+            }}
           >
-            <span className="text-3xl font-bold mr-2">←</span> Обратно к облаку меток
+            <span className="font-bold mr-2" style={{ fontSize: '1.5em' }}>←</span> Обратно к облаку меток
           </button>
-        )}
-        
+        )}        
+
         {/* Page title */}
-        <h1 className="tag-cloud-title text-6xl font-bold text-center mb-4">
+        <h1 
+          className="tag-cloud-title font-bold text-center mb-4"
+          style={{ 
+            fontSize: isSmallMobile ? '2.5rem' : isMobile ? '3.5rem' : '3.75rem' 
+          }}
+        >
           {isTagView ? channelConfig.title : selectedTag}
-        </h1>        
+        </h1>
 
         {/* Category navigation - Always visible */}
         <div 
           ref={categoriesContainerRef}
           className="categories-container flex mb-8 overflow-hidden relative"
+          style={{
+            gap: isSmallMobile ? '0.3rem' : '0.5rem'
+          }}
         >
           {getVisibleCategories().map((category, index) => (
             <button
               key={index}
               className={`category-button ${selectedCategory === category ? 'active' : ''}`}
+              style={{
+                fontSize: getButtonTextSize(),
+                padding: getButtonPadding(),
+                height: isSmallMobile ? 'auto' : 'auto',
+                minWidth: isSmallMobile ? '4rem' : isMobile ? '5rem' : '6rem',
+                // Ensure text fits by allowing wrapping if needed
+                whiteSpace: 'normal',
+                lineHeight: '1.2'
+              }}
               onClick={() => filterByCategory(category)}
             >
               {category}
             </button>
           ))}
           
-          {/* Show navigation button only if there are more categories than can fit */}
           {categories.length > maxVisibleCategories && (
             <button 
-              className="scroll-button ml-auto px-3"
+              className="scroll-button ml-auto"
+              style={{
+                padding: isSmallMobile ? '0.25rem' : isMobile ? '0.3rem' : '0.4rem',
+                fontSize: isSmallMobile ? '0.8rem' : isMobile ? '0.9rem' : '1rem'
+              }}
               onClick={shiftCategories}
               aria-label="Show more categories"
             >
               <span className="scroll-arrow">▶</span>
             </button>
           )}
-        </div>        
+        </div>     
 
         {/* SEARCH FUNCTIONALITY */}        
         <div className="search-container mb-6 w-full flex flex-col justify-center relative">
@@ -599,7 +679,11 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
             {/* Popular searches */}
             {!searchTerm && popularSearches.length > 0 && (
               <div className="popular-searches mt-2 flex flex-wrap justify-center gap-2">
-                <span className="text-sm text-gray-500">Популярные поиски:</span>
+                <span className="text-sm text-gray-500" style={{ 
+                  fontSize: isSmallMobile ? '0.75rem' : isMobile ? '0.8rem' : '0.875rem' 
+                }}>
+                  Популярные поиски:
+                </span>
                 {popularSearches.map((term, index) => (
                   <button 
                     key={index}
@@ -608,7 +692,12 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
                       handleSearch({ target: { value: term } });
                       saveSearchToHistory(term);
                     }}
-                    className="text-sm bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-full"
+                    style={{
+                      fontSize: isSmallMobile ? '0.75rem' : isMobile ? '0.8rem' : '0.875rem',
+                      padding: isSmallMobile ? '0.25rem 0.5rem' : isMobile ? '0.3rem 0.6rem' : '0.35rem 0.7rem',
+                      borderRadius: '9999px'
+                    }}
+                    className="bg-gray-100 hover:bg-gray-200"
                   >
                     {term}
                   </button>
@@ -702,6 +791,11 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
                         className="read-more-button"
                         target="_blank"
                         rel="noopener noreferrer"
+                        style={{
+                          fontSize: isSmallMobile ? '0.8rem' : isMobile ? '0.9rem' : '1rem',
+                          padding: isSmallMobile ? '0.35rem 0.8rem' : isMobile ? '0.45rem 1rem' : '0.5rem 1.2rem',
+                          borderRadius: '4px'
+                        }}
                       >
                         Читать
                       </a>
@@ -716,10 +810,16 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
             </div>
           </div>
         ) : isTagView ? (
-          // Tag Cloud View - Keep your existing code
+          // Tag Cloud View
           <div className="flex justify-center items-center">
-            <div className="tag-cloud-bubble flex flex-wrap justify-center items-center w-4/5 h-auto max-h-screen overflow-auto py-8 px-4" 
-                style={{ height: tagCloudHeight }}>
+            <div 
+              className="tag-cloud-bubble flex flex-wrap justify-center items-center overflow-auto" 
+              style={{ 
+                height: tagCloudHeight,
+                width: isSmallMobile ? '100%' : isMobile ? '90%' : '80%',
+                padding: isSmallMobile ? '0.8rem 0.3rem' : isMobile ? '1rem 0.5rem' : '2rem 1rem'
+              }}
+            >
               {categoryTags.length > 0 ? (
                 categoryTags.map((tag, index) => {
                   const size = getTagSize(tag.count);
@@ -731,9 +831,13 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
                       style={{ 
                         fontSize: `${size}em`,
                         backgroundColor: isLargeTag(tag.count) ? '#e6f7ff' : 'white',
-                        padding: '0.2em 0.4em',
-                        margin: '0.1em',
-                        lineHeight: '1.1'
+                        padding: isSmallMobile ? '0.1em 0.25em' : isMobile ? '0.15em 0.3em' : '0.2em 0.4em',
+                        margin: isSmallMobile ? '0.03em' : isMobile ? '0.05em' : '0.1em',
+                        lineHeight: isSmallMobile ? '1' : '1.1',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'inline-block'
                       }}
                       onClick={() => filterByTag(tag.name)}
                     >
@@ -742,7 +846,7 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
                   );
                 })
               ) : (
-                <span className="empty-state">No tags found for this category</span>
+                <span className="empty-state">Нет меток для этой категории</span>
               )}
             </div>
           </div>

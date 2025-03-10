@@ -35,43 +35,142 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   }
   
+  /* Base button styling */
   .category-button {
-    background-color: var(--color-primary);
-    color: white;
-    padding: 0.5rem 1rem;
-    margin-right: 0.5rem;
-    border-radius: 0.25rem;
-    transition: all 0.2s;
-    min-width: 8rem;
+    border-radius: 6px;
+    background-color: #f5f5f5;
+    font-weight: 500;
+    transition: all 0.2s ease;
     text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  
+
   .category-button:hover {
-    background-color: var(--color-primary);
-    opacity: 0.9;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    background-color: #e8e8e8;
+  }
+
+  .category-button.active {
+    background-color: #e6f7ff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  }
+
+  .scroll-button {
+    border-radius: 50%;
+    background-color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .scroll-button:hover {
+    background-color: #e0e0e0;
+  }
+
+  .scroll-arrow {
+    font-size: 1em;
+    line-height: 1;
+  }
+
+  /* Read more button */
+  .read-more-button {
+    background-color: #1f75cb;
+    color: white;
+    text-align: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: inline-block;
+    font-weight: 500;
+  }
+
+  .read-more-button:hover {
+    background-color: #1a65b0;
     transform: translateY(-1px);
   }
-  
-  .category-button.active {
-    background-color: var(--color-accent);
-    color: var(--color-text-primary);
-    font-weight: bold;
+
+  /* Back button */
+  .back-button {
+    color: #333;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
   }
-  
-  .scroll-button {
-    background-color: var(--color-primary);
-    border-radius: 0.25rem;
-    transition: all 0.2s;
-    color: white;
+
+  .back-button:hover {
+    color: #1f75cb;
   }
-  
-  .scroll-button:hover {
-    background-color: var(--color-accent);
+
+  /* Popular search buttons */
+  .popular-searches button {
+    background-color: #f0f0f0;
+    border-radius: 9999px;
+    transition: all 0.2s ease;
+    font-weight: normal;
   }
-  
-  .scroll-arrow {
-    font-size: 1.5rem;
+
+  .popular-searches button:hover {
+    background-color: #e0e0e0;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .categories-container {
+      overflow-x: auto;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE and Edge */
+      padding-bottom: 4px;
+    }
+    
+    .categories-container::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Opera */
+    }
+    
+    .category-button {
+      flex-shrink: 0; /* Prevent shrinking on small screens */
+    }
+    
+    .read-more-button {
+      width: 100%; /* Full width buttons on mobile */
+      box-sizing: border-box;
+    }
+  }
+
+  /* Extra small screens */
+  @media (max-width: 480px) {
+    /* Optimize touch targets for small screens */
+    .category-button, 
+    .read-more-button,
+    .popular-searches button,
+    .back-button,
+    .tag-item {
+      touch-action: manipulation; /* Optimize for touch */
+    }
+    
+    .category-button {
+      min-height: 32px; /* Ensure minimum touch target height */
+    }
+    
+    .read-more-button {
+      min-height: 36px; /* Larger touch target for main CTA */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  /* Enhance active states for mobile touch */
+  @media (hover: none) {
+    .category-button:active,
+    .read-more-button:active,
+    .back-button:active,
+    .tag-item:active,
+    .popular-searches button:active {
+      opacity: 0.7;
+      transform: scale(0.98);
+    }
   }
   
   .tag-cloud-bubble {
