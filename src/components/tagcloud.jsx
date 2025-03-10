@@ -231,9 +231,9 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
     
     // Tiered font sizing based on screen width
     if (isSmallMobile) {
-      return 0.6 + percentage * 0.4; // Smallest range for small phones
+      return 0.3 + percentage * 0.2; // Smallest range for small phones
     } else if (isMobile) {
-      return 0.7 + percentage * 0.5; // Medium range for tablets/larger phones
+      return 0.35 + percentage * 0.25; // Medium range for tablets/larger phones
     }
     
     // Original desktop size
@@ -461,19 +461,18 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
   useEffect(() => {
     // Throttled calculation function to prevent excessive re-renders
     const calculateVisibleCategories = () => {
-      // Clear any existing timeout
       if (throttleTimeout.current) {
         clearTimeout(throttleTimeout.current);
       }
       
-      // Set a new timeout - only update after 150ms of inactivity
       throttleTimeout.current = setTimeout(() => {
         if (categoriesContainerRef.current) {
           const containerWidth = categoriesContainerRef.current.offsetWidth;
-          // Estimate button width (including margin) as 140px
-          const buttonWidth = 140;
-          // Reserve 50px for the scroll button
-          const availableWidth = containerWidth - 50;
+          // Reduce estimated button width to fit more buttons
+          const buttonWidth = isSmallMobile ? 70 : isMobile ? 90 : 120;
+          // Reserve less space for scroll button
+          const scrollButtonWidth = isSmallMobile ? 30 : 50;
+          const availableWidth = containerWidth - scrollButtonWidth;
           const buttonsCount = Math.floor(availableWidth / buttonWidth);
           setMaxVisibleCategories(Math.max(1, buttonsCount));
         }
@@ -496,7 +495,7 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
         clearTimeout(pendingUpdate.current);
       }
     };
-  }, []);
+  }, [isMobile, isSmallMobile]);
 
   // Load and parse the CSV file - run only once on component mount
   useEffect(() => {
@@ -586,7 +585,7 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
         <h1 
           className="tag-cloud-title font-bold text-center mb-4"
           style={{ 
-            fontSize: isSmallMobile ? '2.5rem' : isMobile ? '3.5rem' : '3.75rem' 
+            fontSize: isSmallMobile ? '1.25rem' : isMobile ? '1.75rem' : '1.875rem' 
           }}
         >
           {isTagView ? channelConfig.title : selectedTag}
@@ -595,9 +594,14 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
         {/* Category navigation - Always visible */}
         <div 
           ref={categoriesContainerRef}
-          className="categories-container flex mb-8 overflow-hidden relative"
+          className="categories-container flex mb-8 relative"
           style={{
-            gap: isSmallMobile ? '0.3rem' : '0.5rem'
+            gap: isSmallMobile ? '0.2rem' : isMobile ? '0.3rem' : '0.5rem',
+            overflowX: 'auto', // Allow horizontal scrolling
+            scrollbarWidth: 'none', // Hide scrollbar
+            msOverflowStyle: 'none',
+            WebkitOverflowScrolling: 'touch',
+            paddingBottom: '4px'
           }}
         >
           {getVisibleCategories().map((category, index) => (
@@ -605,13 +609,20 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
               key={index}
               className={`category-button ${selectedCategory === category ? 'active' : ''}`}
               style={{
-                fontSize: getButtonTextSize(),
-                padding: getButtonPadding(),
-                height: isSmallMobile ? 'auto' : 'auto',
-                minWidth: isSmallMobile ? '4rem' : isMobile ? '5rem' : '6rem',
-                // Ensure text fits by allowing wrapping if needed
-                whiteSpace: 'normal',
-                lineHeight: '1.2'
+                fontSize: isSmallMobile ? '0.7rem' : isMobile ? '0.75rem' : '0.85rem',
+                padding: isSmallMobile ? '0.3rem 0.5rem' : isMobile ? '0.4rem 0.6rem' : '0.5rem 0.8rem',
+                minHeight: '32px',
+                minWidth: isSmallMobile ? '60px' : isMobile ? '80px' : '100px',
+                maxWidth: isSmallMobile ? '100px' : isMobile ? '120px' : '150px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                flexShrink: 0,
+                backgroundColor: '#14294f', // Navy blue background
+                color: 'white', // White text for contrast
+                border: '1px solid #0a1c38',
+                borderRadius: '4px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
               }}
               onClick={() => filterByCategory(category)}
             >
@@ -623,8 +634,18 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
             <button 
               className="scroll-button ml-auto"
               style={{
-                padding: isSmallMobile ? '0.25rem' : isMobile ? '0.3rem' : '0.4rem',
-                fontSize: isSmallMobile ? '0.8rem' : isMobile ? '0.9rem' : '1rem'
+                padding: isSmallMobile ? '0.2rem' : '0.3rem',
+                width: isSmallMobile ? '28px' : '40px',
+                height: isSmallMobile ? '28px' : '40px',
+                minWidth: isSmallMobile ? '28px' : '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#14294f', // Navy blue
+                color: 'white',
+                borderRadius: '4px',
+                flexShrink: 0,
+                border: '1px solid #0a1c38'
               }}
               onClick={shiftCategories}
               aria-label="Show more categories"
@@ -643,11 +664,22 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
               value={searchTerm}
               onChange={handleSearch}
               placeholder="Поиск по тегам, категориям и анонсам статей..."
-              className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{
+                fontSize: isSmallMobile ? '0.7rem' : isMobile ? '0.75rem' : '1rem', // Half size on mobile
+                padding: isSmallMobile ? '0.5rem 0.5rem 0.5rem 2rem' : isMobile ? '0.6rem 0.6rem 0.6rem 2.2rem' : '0.75rem 0.75rem 0.75rem 2.5rem',
+              }}
               autoComplete="off"
             />
             <svg 
-              className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" 
+              className="absolute text-gray-400" 
+              style={{
+                left: isSmallMobile ? '0.5rem' : isMobile ? '0.6rem' : '0.75rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: isSmallMobile ? '1rem' : isMobile ? '1.1rem' : '1.25rem',
+                height: isSmallMobile ? '1rem' : isMobile ? '1.1rem' : '1.25rem',
+              }}
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24" 
@@ -817,7 +849,10 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
               style={{ 
                 height: tagCloudHeight,
                 width: isSmallMobile ? '100%' : isMobile ? '90%' : '80%',
-                padding: isSmallMobile ? '0.8rem 0.3rem' : isMobile ? '1rem 0.5rem' : '2rem 1rem'
+                padding: isSmallMobile ? '0.8rem 0.3rem' : isMobile ? '1rem 0.5rem' : '2rem 1rem',
+                marginTop: 0, // Ensure no extra margin
+                position: 'relative', // Add position context
+                top: 0 // Force position to top                
               }}
             >
               {categoryTags.length > 0 ? (
