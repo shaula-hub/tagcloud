@@ -37,9 +37,9 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
 
   // Get channel configuration or fall back to default
   const channelConfig = CHANNELS[channelId] || CHANNELS.wowmind;
-  
   const { width, isMobile, isSmallMobile } = useScreenSize();
-  
+
+  const [tagRows, setTagRows] = useState([]);  
   const [articles, setArticles] = useState([]);
   const [filteredArticles, setFilteredArticles] = useState([]);
   const [categories, setCategories] = useState(['All']);
@@ -59,6 +59,7 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
   const [popularSearches, setPopularSearches] = useState([]);
   const searchInputRef = useRef(null);  
   
+  const tagCloudRef = useRef(null);    
   // Prevent unnecessary re-renders with useRef instead of state where possible
   const categoriesContainerRef = useRef(null);
   const [maxVisibleCategories, setMaxVisibleCategories] = useState(5);
@@ -268,6 +269,107 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
     return 0.9 + position * 0.9; // Range from 0.9em to 1.8em
     
   }, [categoryTags]);
+
+  // Function to organize tags into rows, accounting for device type
+  const organizeTagsIntoRows = useCallback((tags, containerWidth) => {
+    const rows = [];
+    let currentRow = [];
+    let currentRowWidth = 0;
+    const baseCharWidth = isSmallMobile ? 0.55 : isMobile ? 0.6 : 0.65; // Character width in em
+    const horizontalPadding = isSmallMobile ? 0.6 : isMobile ? 0.7 : 0.8; // Padding in em
+    const marginBetweenTags = 0.4; // 0.2em on each side
+    
+    // Sort tags by size for better visual arrangement (optional)
+    const sortedTags = [...tags].sort((a, b) => b.count - a.count);
+    
+    sortedTags.forEach(tag => {
+      const size = getTagSize(tag.count);
+      // Calculate tag width: text width + padding + margins
+      const tagWidth = (tag.name.length * baseCharWidth * size) + 
+                      (horizontalPadding * 2) + marginBetweenTags;
+      
+      if (currentRowWidth + tagWidth > containerWidth) {
+        // Save current row data including height
+        const maxHeight = Math.max(...currentRow.map(t => getTagSize(t.count)));
+        rows.push({
+          tags: currentRow,
+          height: maxHeight
+        });
+        // Start new row
+        currentRow = [tag];
+        currentRowWidth = tagWidth;
+      } else {
+        // Add to current row
+        currentRow.push(tag);
+        currentRowWidth += tagWidth;
+      }
+    });
+    
+    // Add last row if not empty
+    if (currentRow.length > 0) {
+      const maxHeight = Math.max(...currentRow.map(t => getTagSize(t.count)));
+      rows.push({
+        tags: currentRow,
+        height: maxHeight
+      });
+    }
+    
+    return rows;
+  }, [isSmallMobile, isMobile, getTagSize]);
+
+  // Total cloud height
+  const calculateCloudHeight = useCallback((rows) => {
+    // Base font size (1em in px)
+    const baseFontSize = isSmallMobile ? 14 : isMobile ? 15 : 16;
+    
+    // Vertical spacing between rows
+    const rowSpacing = isSmallMobile ? 6 : isMobile ? 8 : 10;
+    
+    // Calculate total height
+    const totalHeight = rows.reduce((height, row) => {
+      // Convert em to pixels and add line height factor
+      const rowHeight = (row.height * baseFontSize * 1.3) + rowSpacing;
+      return height + rowHeight;
+    }, 0);
+    
+    // Add padding
+    const verticalPadding = isSmallMobile ? 20 : isMobile ? 30 : 40;
+    return totalHeight + (verticalPadding * 2);
+  }, [isSmallMobile, isMobile]);
+
+  // Minimum height values based on device type
+  const getMinCloudHeight = useCallback(() => {
+    return isSmallMobile ? 200 : isMobile ? 250 : 300;
+  }, [isSmallMobile, isMobile]);
+
+  // Effect to calculate and set cloud height
+  useEffect(() => {
+    if (categoryTags.length === 0) {
+      // Set minimum height for empty cloud
+      setTagCloudHeight(`${getMinCloudHeight()}px`);
+      return;
+    }
+    
+    // Get container width from ref or estimate based on device
+    const containerWidth = tagCloudRef.current?.clientWidth || 
+      (isSmallMobile ? 300 : isMobile ? 400 : 600);
+    
+    // Organize tags into rows
+    const rows = organizeTagsIntoRows(categoryTags, containerWidth);
+    
+    // Calculate height
+    const calculatedHeight = calculateCloudHeight(rows);
+    const minHeight = getMinCloudHeight();
+    
+    // Use the larger of calculated or minimum height
+    const finalHeight = Math.max(calculatedHeight, minHeight);
+    
+    // Store rows data if needed for rendering
+    setTagRows(rows);
+    
+    // Set tag cloud height
+    setTagCloudHeight(`${finalHeight}px`);
+  }, [categoryTags, isSmallMobile, isMobile, organizeTagsIntoRows, calculateCloudHeight, getMinCloudHeight]);
 
   // SEARCH FUNCTIONALITY
   const handleSearch = useCallback((event) => {
@@ -864,11 +966,10 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
           // Tag Cloud View
           <div className="flex justify-center items-center">
             <div 
+              ref={tagCloudRef}
               className="tag-cloud-bubble flex flex-wrap justify-center items-start overflow-auto" 
               style={{ 
-                height: 'auto', // Change from fixed height to auto
-                minHeight: '300px', // Set minimum height
-                maxHeight: isSmallMobile ? '60vh' : isMobile ? '65vh' : '70vh',
+                height: tagCloudHeight,
                 width: isSmallMobile ? '100%' : isMobile ? '90%' : '80%',
                 padding: isSmallMobile ? '0.8rem 0.3rem' : isMobile ? '1rem 0.5rem' : '2rem 1rem',
                 marginTop: 0,
@@ -896,11 +997,7 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
                         borderRadius: '4px',
                         cursor: 'pointer',
                         display: 'inline-block',
-                        // CONSISTENT TRUNCATION:
-                        maxWidth: isSmallMobile ? '150px' : isMobile ? '180px' : '200px', // Set max width
-                        whiteSpace: 'nowrap', // Don't wrap
-                        overflow: 'hidden', // Hide overflow
-                        textOverflow: 'ellipsis', // Show ellipsis for overflow
+                        // Remove truncation styles
                         boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                         border: '1px solid #e8e8e8'
                       }}
@@ -916,7 +1013,7 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
             </div>
           </div>
         ) : (
-          // Articles View - Keep your existing code
+          // Articles View
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {filteredArticles.length > 0 ? (
               filteredArticles.map((article, index) => (
