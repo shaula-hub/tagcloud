@@ -599,14 +599,16 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
           ref={categoriesContainerRef}
           className="categories-container flex mb-8 relative"
           style={{
-            gap: isSmallMobile ? '0.2rem' : isMobile ? '0.3rem' : '0.8rem', // Increased horizontal gap for desktop
+            gap: isSmallMobile ? '0.2rem' : isMobile ? '0.3rem' : '0.8rem',
             overflowX: 'auto',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
             WebkitOverflowScrolling: 'touch',
             paddingBottom: '4px',
-            // Add justification to distribute space evenly if all buttons fit
-            justifyContent: categories.length <= maxVisibleCategories ? 'space-between' : 'flex-start'
+            // Only use space-between on desktop when buttons fit
+            justifyContent: (!isMobile && categories.length <= maxVisibleCategories) 
+              ? 'space-between' 
+              : 'flex-start'
           }}
         >
           {getVisibleCategories().map((category, index) => (
@@ -852,14 +854,17 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
             <div 
               className="tag-cloud-bubble flex flex-wrap justify-center items-start overflow-auto" 
               style={{ 
-                height: tagCloudHeight,
+                height: 'auto', // Change from fixed height to auto
+                minHeight: '300px', // Set minimum height
+                maxHeight: isSmallMobile ? '60vh' : isMobile ? '65vh' : '70vh',
                 width: isSmallMobile ? '100%' : isMobile ? '90%' : '80%',
                 padding: isSmallMobile ? '0.8rem 0.3rem' : isMobile ? '1rem 0.5rem' : '2rem 1rem',
                 marginTop: 0,
                 position: 'relative',
-                top: 0,
-                maxHeight: isSmallMobile ? '70vh' : isMobile ? '75vh' : '80vh', // Set maximum height
-                overflowY: 'auto' // Always allow vertical scrolling
+                overflowY: 'auto',
+                border: '1px solid #eaeaea',
+                borderRadius: '8px',
+                backgroundColor: '#f9f9f9'
               }}
             >
               {categoryTags.length > 0 ? (
@@ -874,15 +879,15 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
                         fontSize: `${size}em`,
                         backgroundColor: isLargeTag(tag.count) ? '#e6f7ff' : 'white',
                         padding: isSmallMobile ? '0.1em 0.25em' : isMobile ? '0.15em 0.3em' : '0.2em 0.4em',
-                        margin: isSmallMobile ? '0.03em' : isMobile ? '0.05em' : '0.1em',
-                        lineHeight: isSmallMobile ? '1' : '1.1',
+                        margin: '0.15em', // Consistent margin across all devices
+                        lineHeight: '1.2',
                         borderRadius: '4px',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
                         display: 'inline-block',
-                        maxWidth: 'none', // Remove any max-width restrictions
-                        whiteSpace: 'normal', // Allow text to wrap if needed
-                        wordBreak: 'keep-all' // Prevent breaking words
+                        maxWidth: 'none', // Never truncate tag text
+                        whiteSpace: 'normal',
+                        wordBreak: 'keep-all'
                       }}
                       onClick={() => filterByTag(tag.name)}
                     >
@@ -922,10 +927,14 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
                   </div>
                   <div className="article-title-container overflow-hidden">
                     <div className="w-full text-center">
-                      <span className="line-clamp-2">{article.title}</span>
+                      <span 
+                        className="line-clamp-2"
                         style={{ 
-                          fontSize: isSmallMobile ? '0.9rem' : isMobile ? '0.95rem' : '1.5rem' // 50% larger for desktop
-                        }}                      
+                          fontSize: isSmallMobile ? '0.9rem' : isMobile ? '0.95rem' : '1.1rem'
+                        }}
+                      >
+                        {article.title}
+                      </span>                   
                     </div>
                   </div>
                   <div className="article-excerpt-container overflow-hidden text-sm">
