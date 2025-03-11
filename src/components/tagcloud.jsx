@@ -142,20 +142,32 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
 
   // Filter articles by tag - throttled to 1Hz
   const filterByTag = useCallback((tag) => {
-    setSelectedTag(tag);
-    setIsTagView(false); // Switch to articles view
+    // Add debugging to trace the issue
+    console.log("Tag clicked:", tag);
     
-    // Create the update function
+    // Critical fix: Move state changes OUTSIDE the throttled update
+    setSelectedTag(tag);
+    setIsTagView(false); // Explicitly switch to articles view
+    
     const updateFn = () => {
-      // Direct filtering without unnecessary operations
-      setFilteredArticles(articles.filter(article => 
-        article.tags.includes(tag)
-      ));
+      console.log("Filtering articles for tag:", tag);
+      const filtered = articles.filter(article => article.tags.includes(tag));
+      console.log("Found articles:", filtered.length);
+      
+      if (filtered.length === 0) {
+        console.warn("No articles found for tag:", tag);
+      }
+      
+      setFilteredArticles(filtered);
     };
     
-    // Apply the throttled update
-    throttledUpdate(updateFn);
-  }, [articles, throttledUpdate]);
+    // Skip throttling on mobile for immediate response
+    if (isMobile || isSmallMobile) {
+      updateFn(); 
+    } else {
+      throttledUpdate(updateFn);
+    }
+  }, [articles, throttledUpdate, isMobile, isSmallMobile]);
   
   // Go back to tag cloud view - memoized
   const goBackToTagCloud = useCallback(() => {
@@ -878,16 +890,19 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
                       style={{ 
                         fontSize: `${size}em`,
                         backgroundColor: isLargeTag(tag.count) ? '#e6f7ff' : 'white',
-                        padding: isSmallMobile ? '0.1em 0.25em' : isMobile ? '0.15em 0.3em' : '0.2em 0.4em',
-                        margin: '0.15em', // Consistent margin across all devices
-                        lineHeight: '1.2',
+                        padding: isSmallMobile ? '0.12em 0.3em' : isMobile ? '0.15em 0.35em' : '0.2em 0.4em',
+                        margin: '0.2em',
+                        lineHeight: '1.3',
                         borderRadius: '4px',
                         cursor: 'pointer',
-                        transition: 'all 0.2s ease',
                         display: 'inline-block',
-                        maxWidth: 'none', // Never truncate tag text
-                        whiteSpace: 'normal',
-                        wordBreak: 'keep-all'
+                        // CONSISTENT TRUNCATION:
+                        maxWidth: isSmallMobile ? '150px' : isMobile ? '180px' : '200px', // Set max width
+                        whiteSpace: 'nowrap', // Don't wrap
+                        overflow: 'hidden', // Hide overflow
+                        textOverflow: 'ellipsis', // Show ellipsis for overflow
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                        border: '1px solid #e8e8e8'
                       }}
                       onClick={() => filterByTag(tag.name)}
                     >
