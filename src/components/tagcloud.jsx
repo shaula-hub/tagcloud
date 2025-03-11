@@ -441,14 +441,17 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
   // Tag cloud height calculation
   useEffect(() => {
     const calculateTagCloudHeight = () => {
-      // Responsive height based on screen size
-      const baseHeight = isSmallMobile ? 280 : isMobile ? 320 : 384;
-      const heightPerTag = isSmallMobile ? 25 : isMobile ? 30 : 40;
-      const maxHeight = isSmallMobile ? 500 : isMobile ? 600 : 800;
+      // Base height calculations adjusted for potentially longer tag text
+      const baseHeight = isSmallMobile ? 320 : isMobile ? 360 : 400; 
+      const heightPerTag = isSmallMobile ? 30 : isMobile ? 35 : 40;
+      
+      // Increase height factor for more tags to account for potentially longer text
+      const additionalHeightFactor = 0.5; // Increased from 0.25 to 0.5
       
       const neededHeight = Math.min(
-        baseHeight + (categoryTags.length > 20 ? (categoryTags.length - 20) * heightPerTag/4 : 0),
-        maxHeight
+        baseHeight + (categoryTags.length > 20 ? 
+          (categoryTags.length - 20) * heightPerTag * additionalHeightFactor : 0),
+        isSmallMobile ? 600 : isMobile ? 700 : 800 // Maximum height increased
       );
       
       setTagCloudHeight(`${neededHeight}px`);
@@ -596,12 +599,14 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
           ref={categoriesContainerRef}
           className="categories-container flex mb-8 relative"
           style={{
-            gap: isSmallMobile ? '0.2rem' : isMobile ? '0.3rem' : '0.5rem',
-            overflowX: 'auto', // Allow horizontal scrolling
-            scrollbarWidth: 'none', // Hide scrollbar
+            gap: isSmallMobile ? '0.2rem' : isMobile ? '0.3rem' : '0.8rem', // Increased horizontal gap for desktop
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
             msOverflowStyle: 'none',
             WebkitOverflowScrolling: 'touch',
-            paddingBottom: '4px'
+            paddingBottom: '4px',
+            // Add justification to distribute space evenly if all buttons fit
+            justifyContent: categories.length <= maxVisibleCategories ? 'space-between' : 'flex-start'
           }}
         >
           {getVisibleCategories().map((category, index) => (
@@ -845,14 +850,16 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
           // Tag Cloud View
           <div className="flex justify-center items-center">
             <div 
-              className="tag-cloud-bubble flex flex-wrap justify-center items-center overflow-auto" 
+              className="tag-cloud-bubble flex flex-wrap justify-center items-start overflow-auto" 
               style={{ 
                 height: tagCloudHeight,
                 width: isSmallMobile ? '100%' : isMobile ? '90%' : '80%',
                 padding: isSmallMobile ? '0.8rem 0.3rem' : isMobile ? '1rem 0.5rem' : '2rem 1rem',
-                marginTop: 0, // Ensure no extra margin
-                position: 'relative', // Add position context
-                top: 0 // Force position to top                
+                marginTop: 0,
+                position: 'relative',
+                top: 0,
+                maxHeight: isSmallMobile ? '70vh' : isMobile ? '75vh' : '80vh', // Set maximum height
+                overflowY: 'auto' // Always allow vertical scrolling
               }}
             >
               {categoryTags.length > 0 ? (
@@ -872,7 +879,10 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
                         borderRadius: '4px',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
-                        display: 'inline-block'
+                        display: 'inline-block',
+                        maxWidth: 'none', // Remove any max-width restrictions
+                        whiteSpace: 'normal', // Allow text to wrap if needed
+                        wordBreak: 'keep-all' // Prevent breaking words
                       }}
                       onClick={() => filterByTag(tag.name)}
                     >
@@ -913,6 +923,9 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
                   <div className="article-title-container overflow-hidden">
                     <div className="w-full text-center">
                       <span className="line-clamp-2">{article.title}</span>
+                        style={{ 
+                          fontSize: isSmallMobile ? '0.9rem' : isMobile ? '0.95rem' : '1.5rem' // 50% larger for desktop
+                        }}                      
                     </div>
                   </div>
                   <div className="article-excerpt-container overflow-hidden text-sm">
