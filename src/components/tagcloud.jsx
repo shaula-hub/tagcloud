@@ -110,8 +110,12 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
     const updateFn = () => {
       if (category === 'All') {
         setFilteredArticles(articles);
-        // Update tag cloud with all tags
-        setCategoryTags(allTags);
+        
+        // Add filter for "All" category to remove low-frequency tags
+        const filteredAllTags = allTags.filter(tag => tag.count >= 2);
+        
+        // Update tag cloud with filtered tags
+        setCategoryTags(filteredAllTags);
       } else {
         const filtered = articles.filter(article => 
           article.categories.includes(category)
@@ -140,7 +144,7 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
     // Apply the throttled update
     throttledUpdate(updateFn);
   }, [articles, allTags, throttledUpdate]);
-
+  
   // Filter articles by tag - throttled to 1Hz
   const filterByTag = useCallback((tag) => {
     // Add debugging to trace the issue
