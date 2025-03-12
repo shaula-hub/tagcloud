@@ -280,23 +280,22 @@
   .tag-cloud-bubble {
     display: flex;
     flex-wrap: wrap;
-    gap: 2px;
     justify-content: center;
-    align-items: center;
-    align-content: center;
+    align-items: flex-start;
+    align-content: flex-start;
     background: #f8f9fa;
     border-radius: 16px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 2rem;
-    margin: 0 auto;
     overflow: auto;
     position: relative;
     border: 1px solid #e1e4e8;
-  }
-  
-  .tag-cloud-bubble {
+
+    margin: 0 auto;
     padding: 1rem !important;
     gap: 2px !important;
+
+    scroll-padding-top: 0;
+    scroll-behavior: smooth;    
   }
  
   .tag-cloud-container {
@@ -304,15 +303,10 @@
     position: relative;
   }
   
-  .tag-cloud-container {
-    background-color: var(--color-background);
-    min-height: 100vh;
-  }
-  
-  .tag-cloud-title {
+/* .tag-cloud-title {
     color: var(--color-text-primary);
     font-weight: bold;
-  }
+  } */
   
   .search-container {
     transition: all 0.3s ease;

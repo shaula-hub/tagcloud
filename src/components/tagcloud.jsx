@@ -11,6 +11,11 @@ const CHANNELS = {
   blogem: blogemChannel
 };
 
+const logWithTime = (message, ...args) => {
+  const timestamp = new Date().toISOString().split('T')[1].substring(0, 12);
+  console.log(`[${timestamp}]`, message, ...args);
+};
+
 const TagCloud = ({ channelId = 'wowmind' }) => {
   const useScreenSize = () => {
     const [screenSize, setScreenSize] = useState({
@@ -99,6 +104,7 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
       }, 1000 - timeElapsed);
     }
   }, []);
+  
 
   // Filter articles by category and update tags - throttled to 1Hz
   const filterByCategory = useCallback((category) => {
@@ -110,12 +116,12 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
     const updateFn = () => {
       if (category === 'All') {
         setFilteredArticles(articles);
+        setCategoryTags(allTags);
         
         // Add filter for "All" category to remove low-frequency tags
-        const filteredAllTags = allTags.filter(tag => tag.count >= 2);
-        
+        // const filteredAllTags = allTags.filter(tag => tag.count >= 2);
         // Update tag cloud with filtered tags
-        setCategoryTags(filteredAllTags);
+        // setCategoryTags(filteredAllTags);
       } else {
         const filtered = articles.filter(article => 
           article.categories.includes(category)
@@ -148,16 +154,16 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
   // Filter articles by tag - throttled to 1Hz
   const filterByTag = useCallback((tag) => {
     // Add debugging to trace the issue
-    console.log("Tag clicked:", tag);
+    // logWithTime("Tag clicked:", tag);
     
     // Critical fix: Move state changes OUTSIDE the throttled update
     setSelectedTag(tag);
     setIsTagView(false); // Explicitly switch to articles view
     
     const updateFn = () => {
-      console.log("Filtering articles for tag:", tag);
+      // logWithTime("Filtering articles for tag:", tag);
       const filtered = articles.filter(article => article.tags.includes(tag));
-      console.log("Found articles:", filtered.length);
+      // logWithTime("Found articles:", filtered.length);
       
       if (filtered.length === 0) {
         console.warn("No articles found for tag:", tag);
@@ -274,89 +280,115 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
     
   }, [categoryTags]);
 
-  // Function to organize tags into rows, accounting for device type
-  const organizeTagsIntoRows = useCallback((tags, containerWidth) => {
-    const rows = [];
-    let currentRow = [];
-    let currentRowWidth = 0;
-    const baseCharWidth = isSmallMobile ? 0.55 : isMobile ? 0.6 : 0.65; // Character width in em
-    const horizontalPadding = isSmallMobile ? 0.6 : isMobile ? 0.7 : 0.8; // Padding in em
-    const marginBetweenTags = 0.4; // 0.2em on each side
+// Function to organize tags into rows, accounting for device type
+const organizeTagsIntoRows = useCallback((tags, containerWidth) => {
+  const rows = [];
+  let currentRow = [];
+  let currentRowWidth = 0;
+  const baseCharWidth = isSmallMobile ? 0.55 : isMobile ? 0.6 : 0.65; // Character width in em
+  const horizontalPadding = isSmallMobile ? 0.6 : isMobile ? 0.7 : 0.8; // Padding in em
+  const marginBetweenTags = 0.4; // 0.2em on each side
+  
+  // Hybrid sorting: first by count (descending), then alphabetically for same count
+  const sortedTags = [...tags].sort((a, b) => {
+    // First sort by count (descending)
+    if (b.count !== a.count) {
+      return b.count - a.count;
+    }
+    // Then alphabetically within same count
+    return a.name.localeCompare(b.name);
+  });
+  
+  sortedTags.forEach(tag => {
+    const size = getTagSize(tag.count);
+    // Calculate tag width: text width + padding + margins
+    const tagWidth = (tag.name.length * baseCharWidth * size) + 
+                    (horizontalPadding * 2) + marginBetweenTags;
     
-    // Sort tags by size for better visual arrangement (optional)
-    const sortedTags = [...tags].sort((a, b) => b.count - a.count);
-    
-    sortedTags.forEach(tag => {
-      const size = getTagSize(tag.count);
-      // Calculate tag width: text width + padding + margins
-      const tagWidth = (tag.name.length * baseCharWidth * size) + 
-                      (horizontalPadding * 2) + marginBetweenTags;
-      
-      if (currentRowWidth + tagWidth > containerWidth) {
-        // Save current row data including height
-        const maxHeight = Math.max(...currentRow.map(t => getTagSize(t.count)));
-        rows.push({
-          tags: currentRow,
-          height: maxHeight
-        });
-        // Start new row
-        currentRow = [tag];
-        currentRowWidth = tagWidth;
-      } else {
-        // Add to current row
-        currentRow.push(tag);
-        currentRowWidth += tagWidth;
-      }
-    });
-    
-    // Add last row if not empty
-    if (currentRow.length > 0) {
+    if (currentRowWidth + tagWidth > containerWidth) {
+      // Save current row data including height
       const maxHeight = Math.max(...currentRow.map(t => getTagSize(t.count)));
       rows.push({
         tags: currentRow,
         height: maxHeight
       });
+      // Start new row
+      currentRow = [tag];
+      currentRowWidth = tagWidth;
+    } else {
+      // Add to current row
+      currentRow.push(tag);
+      currentRowWidth += tagWidth;
     }
-    
-    return rows;
-  }, [isSmallMobile, isMobile, getTagSize]);
+  });
+
+  console.log("Sorted tags:", sortedTags.map(t => `${t.name} (${t.count})`).slice(0, 10));
+  
+  // Add last row if not empty
+  if (currentRow.length > 0) {
+    const maxHeight = Math.max(...currentRow.map(t => getTagSize(t.count)));
+    rows.push({
+      tags: currentRow,
+      height: maxHeight
+    });
+  }
+  
+  return rows;
+}, [isSmallMobile, isMobile, getTagSize]);
 
   // Total cloud height
-  const calculateCloudHeight = useCallback((rows) => {
-    // Base font size (1em in px)
-    const baseFontSize = isSmallMobile ? 14 : isMobile ? 15 : 16;
+// In your calculateCloudHeight function, add these debug logs
+const calculateCloudHeight = useCallback((rows) => {
+  // Base font size (1em in px)
+  const baseFontSize = isSmallMobile ? 14 : isMobile ? 15 : 16;
+  
+  // Vertical spacing between rows
+  const rowSpacing = isSmallMobile ? 6 : isMobile ? 8 : 10;
+  
+  // Calculate total height with detailed logs
+  const totalHeight = rows.reduce((height, row, index) => {
+    // Convert em to pixels and add line height factor
+    const rowHeight = (row.height * baseFontSize * 1.3) + rowSpacing;
+    return height + rowHeight;
+  }, 0);
+  
+  // Add padding
+  const verticalPadding = isSmallMobile ? 20 : isMobile ? 30 : 40;
+  const result = totalHeight + (verticalPadding * 2);
+  
+  return result;
+}, [isSmallMobile, isMobile]);
     
-    // Vertical spacing between rows
-    const rowSpacing = isSmallMobile ? 6 : isMobile ? 8 : 10;
-    
-    // Calculate total height
-    const totalHeight = rows.reduce((height, row) => {
-      // Convert em to pixels and add line height factor
-      const rowHeight = (row.height * baseFontSize * 1.3) + rowSpacing;
-      return height + rowHeight;
-    }, 0);
-    
-    // Add padding
-    const verticalPadding = isSmallMobile ? 20 : isMobile ? 30 : 40;
-    return totalHeight + (verticalPadding * 2);
-  }, [isSmallMobile, isMobile]);
 
   // Minimum height values based on device type
   const getMinCloudHeight = useCallback(() => {
     return isSmallMobile ? 200 : isMobile ? 250 : 300;
   }, [isSmallMobile, isMobile]);
 
+  // Monitoring the DOM directly
+  //useEffect(() => {
+  //  const interval = setInterval(() => {
+  //    if (tagCloudRef.current) {
+  //      logWithTime('Actual DOM height:', tagCloudRef.current.offsetHeight);
+  //    }
+  //  }, 1000);
+  //  return () => clearInterval(interval);
+  //}, []);
+
   // Effect to calculate and set cloud height
   useEffect(() => {
     if (categoryTags.length === 0) {
-      // Set minimum height for empty cloud
-      setTagCloudHeight(`${getMinCloudHeight()}px`);
+      // logWithTime('No tags - using minimum height');
+      const minHeight = getMinCloudHeight();
+      // logWithTime(`Minimum height: ${minHeight}px`);
+      setTagCloudHeight(`${minHeight}px`);
       return;
     }
     
     // Get container width from ref or estimate based on device
     const containerWidth = tagCloudRef.current?.clientWidth || 
       (isSmallMobile ? 300 : isMobile ? 400 : 600);
+    // logWithTime(`Container width: ${containerWidth}px`);
     
     // Organize tags into rows
     const rows = organizeTagsIntoRows(categoryTags, containerWidth);
@@ -374,6 +406,26 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
     // Set tag cloud height
     setTagCloudHeight(`${finalHeight}px`);
   }, [categoryTags, isSmallMobile, isMobile, organizeTagsIntoRows, calculateCloudHeight, getMinCloudHeight]);
+
+  // Add a specific useEffect for handling the "All" category height
+  useEffect(() => {
+    if (tagCloudRef.current) {
+      // Reset scroll position
+      tagCloudRef.current.scrollTop = 0;
+      
+      // Set specific height for "All" category, dynamic height for others
+      if (selectedCategory === 'All') {
+        tagCloudRef.current.style.height = '800px';
+      } else {
+        // For other categories, use your calculated height
+        const calculatedHeight = Math.max(
+          calculateCloudHeight(tagRows), 
+          getMinCloudHeight()
+        );
+        tagCloudRef.current.style.height = `${calculatedHeight}px`;
+      }
+    }
+  }, [selectedCategory, tagRows, calculateCloudHeight, getMinCloudHeight]);
 
   // SEARCH FUNCTIONALITY
   const handleSearch = useCallback((event) => {
@@ -558,24 +610,24 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
 
   // Tag cloud height calculation
   useEffect(() => {
-    const calculateTagCloudHeight = () => {
-      // Base height calculations adjusted for potentially longer tag text
-      const baseHeight = isSmallMobile ? 320 : isMobile ? 360 : 400; 
-      const heightPerTag = isSmallMobile ? 30 : isMobile ? 35 : 40;
+  //  const calculateTagCloudHeight = () => {
+  //    // Base height calculations adjusted for potentially longer tag text
+  //    const baseHeight = isSmallMobile ? 320 : isMobile ? 360 : 400; 
+  //    const heightPerTag = isSmallMobile ? 30 : isMobile ? 35 : 40;
       
-      // Increase height factor for more tags to account for potentially longer text
-      const additionalHeightFactor = 0.5; // Increased from 0.25 to 0.5
+  //    // Increase height factor for more tags to account for potentially longer text
+  //    const additionalHeightFactor = 0.5; // Increased from 0.25 to 0.5
       
-      const neededHeight = Math.min(
-        baseHeight + (categoryTags.length > 20 ? 
-          (categoryTags.length - 20) * heightPerTag * additionalHeightFactor : 0),
-        isSmallMobile ? 600 : isMobile ? 700 : 800 // Maximum height increased
-      );
+  //    const neededHeight = Math.min(
+  //      baseHeight + (categoryTags.length > 20 ? 
+  //        (categoryTags.length - 20) * heightPerTag * additionalHeightFactor : 0),
+  //      isSmallMobile ? 600 : isMobile ? 700 : 800 // Maximum height increased
+  //    );
       
-      setTagCloudHeight(`${neededHeight}px`);
-    };
+  //    setTagCloudHeight(`${neededHeight}px`);
+  //  };
     
-    calculateTagCloudHeight();
+  //  calculateTagCloudHeight();
   }, [categoryTags, isMobile, isSmallMobile]);
 
   // Calculate how many category buttons can fit - with throttling to improve performance
@@ -985,7 +1037,8 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
               }}
             >
               {categoryTags.length > 0 ? (
-                categoryTags.map((tag, index) => {
+                // Flatten all tags from all rows into a single array and render them
+                tagRows.flatMap(row => row.tags).map((tag, index) => {
                   const size = getTagSize(tag.count);
                   
                   return (
@@ -1001,7 +1054,6 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
                         borderRadius: '4px',
                         cursor: 'pointer',
                         display: 'inline-block',
-                        // Remove truncation styles
                         boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                         border: '1px solid #e8e8e8'
                       }}
@@ -1014,6 +1066,7 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
               ) : (
                 <span className="empty-state">Нет меток для этой категории</span>
               )}
+
             </div>
           </div>
         ) : (
