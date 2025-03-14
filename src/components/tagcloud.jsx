@@ -55,6 +55,7 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
   const [allTags, setAllTags] = useState([]);
   const [categoryTags, setCategoryTags] = useState([]);
   const [tagCloudHeight, setTagCloudHeight] = useState('24rem');
+  const cloudHeightCalculatorRef = useRef(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -105,6 +106,53 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
     }
   }, []);
   
+  
+  // Total cloud height
+  const calculateCloudHeight = useCallback((rows) => {
+    // Base font size (1em in px)
+    const baseFontSize = isSmallMobile ? 14 : isMobile ? 15 : 16;
+    
+    // Vertical spacing between rows
+    const rowSpacing = isSmallMobile ? 6 : isMobile ? 8 : 10;
+    
+    // Calculate total height with detailed logs
+    const totalHeight = rows.reduce((height, row, index) => {
+      // Convert em to pixels and add line height factor
+      const rowHeight = (row.height * baseFontSize * 1.3) + rowSpacing;
+      return height + rowHeight;
+    }, 0);
+    
+    // Add padding
+    const verticalPadding = isSmallMobile ? 20 : isMobile ? 30 : 40;
+    const result = totalHeight + (verticalPadding * 2);
+    
+    return result;
+  }, [isSmallMobile, isMobile]);
+  
+  // 2. Then the useEffect that references it
+  useEffect(() => {
+    cloudHeightCalculatorRef.current = calculateCloudHeight;
+  }, [calculateCloudHeight]);
+    
+  // Minimum height values based on device type
+  const getMinCloudHeight = useCallback(() => {
+    return isSmallMobile ? 200 : isMobile ? 250 : 300;
+  }, [isSmallMobile, isMobile]);
+
+  // Monitoring the DOM directly
+  //useEffect(() => {
+  //  const interval = setInterval(() => {
+  //    if (tagCloudRef.current) {
+  //      logWithTime('Actual DOM height:', tagCloudRef.current.offsetHeight);
+  //    }
+  //  }, 1000);
+  //  return () => clearInterval(interval);
+  //}, []);
+
+  useEffect(() => {
+    cloudHeightCalculatorRef.current = calculateCloudHeight;
+  }, [calculateCloudHeight]);
+
 
   // Filter articles by category and update tags - throttled to 1Hz
   const filterByCategory = useCallback((category) => {
@@ -112,16 +160,16 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
     setIsTagView(true); // Switch to tag view
     setSelectedTag(null); // Clear selected tag
     
+    // Immediately set the height for "All" category
+    if (category === 'All' && tagCloudRef.current) {
+      tagCloudRef.current.style.height = '800px';
+    }
+    
     // Create the update function
     const updateFn = () => {
       if (category === 'All') {
         setFilteredArticles(articles);
         setCategoryTags(allTags);
-        
-        // Add filter for "All" category to remove low-frequency tags
-        // const filteredAllTags = allTags.filter(tag => tag.count >= 2);
-        // Update tag cloud with filtered tags
-        // setCategoryTags(filteredAllTags);
       } else {
         const filtered = articles.filter(article => 
           article.categories.includes(category)
@@ -144,12 +192,22 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
         }));
         
         setCategoryTags(tagsArray);
+        
+        // Calculate height for non-All categories (after a delay for DOM to update)
+        setTimeout(() => {
+          if (tagCloudRef.current) {
+            const calculatedHeight = Math.max(
+              calculateCloudHeight(tagRows), 
+              getMinCloudHeight()
+            );
+            tagCloudRef.current.style.height = `${calculatedHeight}px`;
+          }
+        }, 100);
       }
-    };
-    
+    };    
     // Apply the throttled update
     throttledUpdate(updateFn);
-  }, [articles, allTags, throttledUpdate]);
+  }, [articles, allTags, throttledUpdate, calculateCloudHeight, getMinCloudHeight, tagRows]);
   
   // Filter articles by tag - throttled to 1Hz
   const filterByTag = useCallback((tag) => {
@@ -336,45 +394,6 @@ const organizeTagsIntoRows = useCallback((tags, containerWidth) => {
   return rows;
 }, [isSmallMobile, isMobile, getTagSize]);
 
-  // Total cloud height
-// In your calculateCloudHeight function, add these debug logs
-const calculateCloudHeight = useCallback((rows) => {
-  // Base font size (1em in px)
-  const baseFontSize = isSmallMobile ? 14 : isMobile ? 15 : 16;
-  
-  // Vertical spacing between rows
-  const rowSpacing = isSmallMobile ? 6 : isMobile ? 8 : 10;
-  
-  // Calculate total height with detailed logs
-  const totalHeight = rows.reduce((height, row, index) => {
-    // Convert em to pixels and add line height factor
-    const rowHeight = (row.height * baseFontSize * 1.3) + rowSpacing;
-    return height + rowHeight;
-  }, 0);
-  
-  // Add padding
-  const verticalPadding = isSmallMobile ? 20 : isMobile ? 30 : 40;
-  const result = totalHeight + (verticalPadding * 2);
-  
-  return result;
-}, [isSmallMobile, isMobile]);
-    
-
-  // Minimum height values based on device type
-  const getMinCloudHeight = useCallback(() => {
-    return isSmallMobile ? 200 : isMobile ? 250 : 300;
-  }, [isSmallMobile, isMobile]);
-
-  // Monitoring the DOM directly
-  //useEffect(() => {
-  //  const interval = setInterval(() => {
-  //    if (tagCloudRef.current) {
-  //      logWithTime('Actual DOM height:', tagCloudRef.current.offsetHeight);
-  //    }
-  //  }, 1000);
-  //  return () => clearInterval(interval);
-  //}, []);
-
   // Effect to calculate and set cloud height
   useEffect(() => {
     if (categoryTags.length === 0) {
@@ -409,23 +428,37 @@ const calculateCloudHeight = useCallback((rows) => {
 
   // Add a specific useEffect for handling the "All" category height
   useEffect(() => {
+  // Add a console log to confirm the effect is running
+  console.log("Category changed to:", selectedCategory);
+  
+  // Add a small delay to ensure the DOM is ready
+  const timer = setTimeout(() => {
     if (tagCloudRef.current) {
-      // Reset scroll position
-      tagCloudRef.current.scrollTop = 0;
+      console.log("Setting height for", selectedCategory);
       
-      // Set specific height for "All" category, dynamic height for others
+      // Force a specific height for the "All" category
       if (selectedCategory === 'All') {
+        console.log("Setting All category height to 800px");
         tagCloudRef.current.style.height = '800px';
       } else {
-        // For other categories, use your calculated height
-        const calculatedHeight = Math.max(
-          calculateCloudHeight(tagRows), 
-          getMinCloudHeight()
-        );
-        tagCloudRef.current.style.height = `${calculatedHeight}px`;
+        // For other categories, calculate based on content
+        console.log("Calculating height for category:", selectedCategory);
+        const containerWidth = tagCloudRef.current.clientWidth;
+        const rows = organizeTagsIntoRows(categoryTags, containerWidth);
+        const calculatedHeight = calculateCloudHeight(rows);
+        const minHeight = getMinCloudHeight();
+        const finalHeight = Math.max(calculatedHeight, minHeight);
+        
+        console.log(`Setting ${selectedCategory} height to ${finalHeight}px`);
+        tagCloudRef.current.style.height = `${finalHeight}px`;
       }
+    } else {
+      console.warn("tagCloudRef.current is null");
     }
-  }, [selectedCategory, tagRows, calculateCloudHeight, getMinCloudHeight]);
+  }, 200); // 200ms delay to ensure DOM is updated
+  
+  return () => clearTimeout(timer);
+}, [selectedCategory, categoryTags, organizeTagsIntoRows, calculateCloudHeight, getMinCloudHeight]);
 
   // SEARCH FUNCTIONALITY
   const handleSearch = useCallback((event) => {
