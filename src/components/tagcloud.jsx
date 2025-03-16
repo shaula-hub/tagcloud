@@ -11,10 +11,10 @@ const CHANNELS = {
   blogem: blogemChannel
 };
 
-const logWithTime = (message, ...args) => {
-  const timestamp = new Date().toISOString().split('T')[1].substring(0, 12);
-  console.log(`[${timestamp}]`, message, ...args);
-};
+// const logWithTime = (message, ...args) => {
+//   const timestamp = new Date().toISOString().split('T')[1].substring(0, 12);
+//   console.log(`[${timestamp}]`, message, ...args);
+// };
 
 const TagCloud = ({ channelId = 'wowmind' }) => {
   const useScreenSize = () => {
@@ -56,6 +56,7 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
   const [categoryTags, setCategoryTags] = useState([]);
   const [tagCloudHeight, setTagCloudHeight] = useState('24rem');
   const cloudHeightCalculatorRef = useRef(null);
+  const [isScrollButtonHovered, setIsScrollButtonHovered] = useState(false);  
 
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -116,7 +117,8 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
     const rowSpacing = isSmallMobile ? 6 : isMobile ? 8 : 10;
     
     // Calculate total height with detailed logs
-    const totalHeight = rows.reduce((height, row, index) => {
+    const totalHeight = rows.reduce((height, row) => {
+      // const totalHeight = rows.reduce((height, row, index) => {
       // Convert em to pixels and add line height factor
       const rowHeight = (row.height * baseFontSize * 1.3) + rowSpacing;
       return height + rowHeight;
@@ -254,35 +256,58 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
   }, [selectedCategory, articles, allTags, filterByCategory]);
 
   // Navigate categories (scroll)
-  const shiftCategories = () => {
-    // Calculate maximum possible offset (categories length minus visible slots plus 1 for All)
-    const maxOffset = Math.max(0, categories.length - maxVisibleCategories + 1);
+  const shiftCategories = useCallback(() => {
+    console.log("Shift categories button clicked");    
     
-    // Increment offset but wrap around when we reach the end
-    setScrollOffset((prev) => {
-      // If we're about to go beyond the max, return to start
-      if (prev >= maxOffset - 1) {
+    // Calculate how many regular categories we can show (not including "All")
+    const regularCategoriesCount = maxVisibleCategories - 1;
+    
+    // Calculate the maximum offset value
+    // This is the total categories minus "All" minus regularCategoriesCount
+    const maxOffset = Math.max(0, categories.length - 1 - regularCategoriesCount);
+    
+    console.log('Shifting categories, maxOffset:', maxOffset, 'current offset:', scrollOffset);
+    
+    setScrollOffset(prevOffset => {
+      if (prevOffset >= maxOffset) {
+        // If we're at the end, go back to the start
+        console.log('Resetting to beginning');
         return 0;
       } else {
-        // Otherwise, increment
-        return prev + 1;
+        // Otherwise increment by 1
+        const newOffset = prevOffset + 1;
+        console.log('New scrollOffset:', newOffset);
+        return newOffset;
       }
     });
-  };
+  }, [categories.length, maxVisibleCategories, scrollOffset]);
 
-  const getVisibleCategories = () => {
-    // Always include "All" as the first visible button
-    if (scrollOffset === 0) {
-      // If not scrolled, show buttons from the beginning
+  const getVisibleCategories = useCallback(() => {
+    // If all categories fit, show them all
+    if (categories.length <= maxVisibleCategories) {
+      return categories;
+    }
+    
+    // Calculate how many regular categories we can show (minus All)
+    const regularCategoriesCount = maxVisibleCategories - 1;
+    
+    // Calculate the maximum offset to prevent going past the end
+    const maxOffset = Math.max(0, categories.length - regularCategoriesCount - 1);
+    
+    // Clamp the scroll offset to valid values
+    const safeOffset = Math.min(scrollOffset, maxOffset);
+    
+    if (safeOffset === 0) {
+      // Not scrolled, show first batch including "All"
       return categories.slice(0, maxVisibleCategories);
     } else {
-      // If scrolled, always include "All" and then show other buttons based on offset
+      // When scrolled, always include "All" plus categories starting from the offset
       return [
-        categories[0], // Always include "All" button (first in the array)
-        ...categories.slice(scrollOffset + 1, scrollOffset + maxVisibleCategories)
+        categories[0], // "All" category
+        ...categories.slice(safeOffset + 1, safeOffset + 1 + regularCategoriesCount)
       ];
     }
-  };
+  }, [categories, maxVisibleCategories, scrollOffset]);
 
   // Function to get a tag size based on count - memoized to prevent recalculation on each render
   const tagSizeData = useMemo(() => {
@@ -322,21 +347,21 @@ const TagCloud = ({ channelId = 'wowmind' }) => {
   }, [categoryTags, tagSizeData, isMobile, isSmallMobile]);
 
   // Also, create a function to distribute tag sizes more evenly
-  const getDistributedTagSize = useCallback((count) => {
-    if (categoryTags.length === 0) return 1;
+  // const getDistributedTagSize = useCallback((count) => {
+  //   if (categoryTags.length === 0) return 1;
     
-    // Sort tags by count
-    const sortedCounts = [...categoryTags].sort((a, b) => a.count - b.count).map(t => t.count);
+  //   // Sort tags by count
+  //   const sortedCounts = [...categoryTags].sort((a, b) => a.count - b.count).map(t => t.count);
     
-    // Find the index of this count in the sorted list
-    const index = sortedCounts.indexOf(count);
+  //   // Find the index of this count in the sorted list
+  //   const index = sortedCounts.indexOf(count);
     
-    // Calculate size based on position in the distribution
-    // This creates more evenly distributed sizes
-    const position = index / (sortedCounts.length - 1 || 1);
-    return 0.9 + position * 0.9; // Range from 0.9em to 1.8em
+  //   // Calculate size based on position in the distribution
+  //   // This creates more evenly distributed sizes
+  //   const position = index / (sortedCounts.length - 1 || 1);
+  //   return 0.9 + position * 0.9; // Range from 0.9em to 1.8em
     
-  }, [categoryTags]);
+  // }, [categoryTags]);
 
 // Function to organize tags into rows, accounting for device type
 const organizeTagsIntoRows = useCallback((tags, containerWidth) => {
@@ -598,28 +623,28 @@ const organizeTagsIntoRows = useCallback((tags, containerWidth) => {
     );
   };
 
-  const getButtonTextSize = useCallback(() => {
-    if (isSmallMobile) {
-      return '0.8rem'; // Smallest text for small phones
-    } else if (isMobile) {
-      return '0.85rem'; // Medium text for tablets/larger phones
-    }
+  // const getButtonTextSize = useCallback(() => {
+  //   if (isSmallMobile) {
+  //     return '0.8rem'; // Smallest text for small phones
+  //   } else if (isMobile) {
+  //     return '0.85rem'; // Medium text for tablets/larger phones
+  //   }
     
-    // Original desktop size
-    return '1rem';
-  }, [isMobile, isSmallMobile]);
+  //   // Original desktop size
+  //   return '1rem';
+  // }, [isMobile, isSmallMobile]);
   
   // 5. Add a function to calculate button padding based on screen size
-  const getButtonPadding = useCallback(() => {
-    if (isSmallMobile) {
-      return '0.35rem 0.6rem'; // Smallest padding for small phones
-    } else if (isMobile) {
-      return '0.45rem 0.8rem'; // Medium padding for tablets/larger phones
-    }
+  // const getButtonPadding = useCallback(() => {
+  //   if (isSmallMobile) {
+  //     return '0.35rem 0.6rem'; // Smallest padding for small phones
+  //   } else if (isMobile) {
+  //     return '0.45rem 0.8rem'; // Medium padding for tablets/larger phones
+  //   }
     
-    // Original desktop size
-    return '0.6rem 1rem';
-  }, [isMobile, isSmallMobile]);
+  //   // Original desktop size
+  //   return '0.6rem 1rem';
+  // }, [isMobile, isSmallMobile]);
 
   // Popular searches
   useEffect(() => {
@@ -665,7 +690,6 @@ const organizeTagsIntoRows = useCallback((tags, containerWidth) => {
 
   // Calculate how many category buttons can fit - with throttling to improve performance
   useEffect(() => {
-    // Throttled calculation function to prevent excessive re-renders
     const calculateVisibleCategories = () => {
       if (throttleTimeout.current) {
         clearTimeout(throttleTimeout.current);
@@ -674,34 +698,48 @@ const organizeTagsIntoRows = useCallback((tags, containerWidth) => {
       throttleTimeout.current = setTimeout(() => {
         if (categoriesContainerRef.current) {
           const containerWidth = categoriesContainerRef.current.offsetWidth;
-          // Reduce estimated button width to fit more buttons
-          const buttonWidth = isSmallMobile ? 70 : isMobile ? 90 : 120;
-          // Reserve less space for scroll button
-          const scrollButtonWidth = isSmallMobile ? 30 : 50;
-          const availableWidth = containerWidth - scrollButtonWidth;
-          const buttonsCount = Math.floor(availableWidth / buttonWidth);
-          setMaxVisibleCategories(Math.max(1, buttonsCount));
+          
+          // More accurate button width calculation including gap
+          const buttonGap = parseFloat(isSmallMobile ? '0.2rem' : isMobile ? '0.3rem' : '0.8rem') * 16;
+          const avgButtonWidth = isSmallMobile ? 60 : isMobile ? 80 : 100;
+          const buttonWithGap = avgButtonWidth + buttonGap;
+          
+          // Always reserve space for the scroll button
+          const scrollButtonWidth = isSmallMobile ? 28 : 40;
+          const scrollButtonMargin = 8;
+          
+          const shouldReserveScrollSpace = categories.length > 5;
+          const reservedSpace = shouldReserveScrollSpace ? scrollButtonWidth + scrollButtonMargin : 0;
+          
+          const availableWidth = containerWidth - reservedSpace;
+          
+          // Calculate how many buttons can fit
+          const buttonsCount = Math.floor(availableWidth / buttonWithGap);
+          
+          // Ensure at least 2 buttons are shown
+          const finalCount = Math.max(2, buttonsCount);
+          
+          setMaxVisibleCategories(finalCount);
+
+          console.log(`Container width: ${containerWidth}px, buttonWithGap: ${buttonWithGap}px, visibleButtons: ${finalCount}`);          
         }
       }, 150);
     };
-
-    // Calculate once on mount
-    calculateVisibleCategories();
     
-    // Add throttled event listener
+    calculateVisibleCategories();
     window.addEventListener('resize', calculateVisibleCategories);
     
-    // Cleanup
+    if (categories.length > 0) {
+      calculateVisibleCategories();
+    }
+    
     return () => {
       window.removeEventListener('resize', calculateVisibleCategories);
       if (throttleTimeout.current) {
         clearTimeout(throttleTimeout.current);
       }
-      if (pendingUpdate.current) {
-        clearTimeout(pendingUpdate.current);
-      }
     };
-  }, [isMobile, isSmallMobile]);
+  }, [categories, isMobile, isSmallMobile]);
 
   // Load and parse the CSV file - run only once on component mount
   useEffect(() => {
@@ -797,18 +835,17 @@ const organizeTagsIntoRows = useCallback((tags, containerWidth) => {
           {isTagView ? channelConfig.title : selectedTag}
         </h1>
 
-        {/* Category navigation - Always visible */}
+        {/* Catego  */}
         <div 
           ref={categoriesContainerRef}
           className="categories-container flex mb-8 relative"
           style={{
-            gap: isSmallMobile ? '0.2rem' : isMobile ? '0.3rem' : '0.8rem',
-            overflowX: 'auto',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            WebkitOverflowScrolling: 'touch',
+            gap: isSmallMobile ? '0.2rem' : isMobile ? '0.3rem' : '0.5rem', // Reduced gap
+            overflowX: 'hidden',
             paddingBottom: '4px',
-            // Only use space-between on desktop when buttons fit
+            position: 'relative',
+            width: '100%',
+            paddingRight: categories.length > maxVisibleCategories ? '45px' : '0', // Make room for scroll button
             justifyContent: (!isMobile && categories.length <= maxVisibleCategories) 
               ? 'space-between' 
               : 'flex-start'
@@ -816,20 +853,21 @@ const organizeTagsIntoRows = useCallback((tags, containerWidth) => {
         >
           {getVisibleCategories().map((category, index) => (
             <button
-              key={index}
+              key={`${category}-${index}`} // Changed key for stability
               className={`category-button ${selectedCategory === category ? 'active' : ''}`}
               style={{
                 fontSize: isSmallMobile ? '0.7rem' : isMobile ? '0.75rem' : '0.85rem',
                 padding: isSmallMobile ? '0.3rem 0.5rem' : isMobile ? '0.4rem 0.6rem' : '0.5rem 0.8rem',
                 minHeight: '32px',
-                minWidth: isSmallMobile ? '60px' : isMobile ? '80px' : '100px',
-                maxWidth: isSmallMobile ? '100px' : isMobile ? '120px' : '150px',
+                minWidth: isSmallMobile ? '50px' : isMobile ? '70px' : '90px', // Reduced min width
+                maxWidth: isSmallMobile ? '100px' : isMobile ? '120px' : '140px', // Reduced max width
+                flex: '1 0 auto', 
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 flexShrink: 0,
-                backgroundColor: '#14294f', // Navy blue background
-                color: 'white', // White text for contrast
+                backgroundColor: '#14294f',
+                color: 'white',
                 border: '1px solid #0a1c38',
                 borderRadius: '4px',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
@@ -842,7 +880,7 @@ const organizeTagsIntoRows = useCallback((tags, containerWidth) => {
           
           {categories.length > maxVisibleCategories && (
             <button 
-              className="scroll-button ml-auto"
+              className="scroll-button"
               style={{
                 padding: isSmallMobile ? '0.2rem' : '0.3rem',
                 width: isSmallMobile ? '28px' : '40px',
@@ -851,20 +889,29 @@ const organizeTagsIntoRows = useCallback((tags, containerWidth) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: '#14294f', // Navy blue
-                color: 'white',
                 borderRadius: '4px',
                 flexShrink: 0,
-                border: '1px solid #0a1c38'
+                border: '1px solid #0a1c38',
+                marginLeft: '8px',
+                position: 'absolute',
+                right: 0,
+                top: '50%',
+                transform: 'translateY(calc(-50% + 2px))',
+                zIndex: 10,
+                backgroundColor: isScrollButtonHovered ? '#1e3a8a' : '#14294f', // Darker blue on hover
+                color: isScrollButtonHovered ? '#ffffff' : '#ffffff', // Could change text color too
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
               }}
               onClick={shiftCategories}
+              onMouseEnter={() => setIsScrollButtonHovered(true)}
+              onMouseLeave={() => setIsScrollButtonHovered(false)}
               aria-label="Show more categories"
             >
               <span className="scroll-arrow">▶</span>
             </button>
           )}
-        </div>     
-
+        </div>
         {/* SEARCH FUNCTIONALITY */}        
         <div className="search-container mb-6 w-full flex flex-col justify-center relative">
           <div className="relative w-full max-w-xl mx-auto">

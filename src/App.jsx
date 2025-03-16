@@ -1,5 +1,4 @@
-import TagCloud from './components/tagcloud'
-// import TagCloud from '/tagcloud/src/components/tagcloud.jsx'
+import MultiTetris from './components/multi'
 
 function App() {
   return (
