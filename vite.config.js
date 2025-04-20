@@ -34,7 +34,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    base: "/apps/tagcloud/", // For GitHub Pages deployment
+    base: "/tagcloud/", // For GitHub Pages deployment
+    // base: "/apps/tagcloud/", // For GitHub Pages deployment
     build: {
       outDir: channelConfig.outDir,
     },
